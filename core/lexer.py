@@ -1,34 +1,7 @@
 import re
 
-from .errors import CompilerError, Position, Range, error_collector
-from .tokens import Token, symbol_kinds, keyword_kinds
-from .tokens import (
-    bool_kw,
-    char_kw,
-    int_kw,
-    float_kw,
-    plus,
-    minus,
-    star,
-    slash,
-    equals,
-    mod,
-    amp,
-    dquote,
-    squote,
-    l_paren,
-    r_paren,
-    l_brack,
-    r_brack,
-    l_sq_brack,
-    r_sq_brack,
-    comma,
-    semicolon,
-    dot,
-    identifier,
-    number,
-    string
-)
+from core import tokens as tks
+from core.errors import CompilerError, Position, Range, error_collector
 
 class Tagged:
 
@@ -109,8 +82,8 @@ def tokenize_line(line, in_comment):
 
         if in_comment:
             
-            if (symbol_kind == star and
-                    next_symbol_kind == slash):
+            if (symbol_kind == tks.star and
+                    next_symbol_kind == tks.slash):
                 in_comment = False
                 chunk_start = chunk_end + 2
                 chunk_end = chunk_start
@@ -119,14 +92,14 @@ def tokenize_line(line, in_comment):
                 chunk_start = chunk_end + 1
                 chunk_end = chunk_start
        
-        elif (symbol_kind == slash and
-                next_symbol_kind == star):
+        elif (symbol_kind == tks.slash and
+                next_symbol_kind == tks.star):
             add_chunk(line[chunk_start:chunk_end], tokens)
             in_comment = True
 
         
-        elif (symbol_kind == slash and
-                next_symbol_kind == slash):
+        elif (symbol_kind == tks.slash and
+                next_symbol_kind == tks.slash):
             break
 
         
@@ -136,16 +109,16 @@ def tokenize_line(line, in_comment):
             chunk_end = chunk_start
 
         
-        elif symbol_kind in {dquote, squote}:
+        elif symbol_kind in {tks.dquote, tks.squote}:
             quote_str = '"'
-            kind = string
+            kind = tks.string
             add_null = True
 
             chars, end = read_string(line, chunk_end + 1, quote_str, add_null)
             rep = chunk_to_str(line[chunk_end:end + 1])
             r = Range(line[chunk_end].p, line[end].p)
 
-            tokens.append(Token(kind, chars, rep, r=r))
+            tokens.append(tks.Token(kind, chars, rep, r=r))
 
             chunk_start = end + 1
             chunk_end = chunk_start
@@ -155,7 +128,7 @@ def tokenize_line(line, in_comment):
             symbol_end_index = chunk_end + len(symbol_kind.text_repr) - 1
 
             r = Range(line[symbol_start_index].p, line[symbol_end_index].p)
-            symbol_token = Token(symbol_kind, r=r)
+            symbol_token = tks.Token(symbol_kind, r=r)
 
             add_chunk(line[chunk_start:chunk_end], tokens)
             tokens.append(symbol_token)
@@ -176,7 +149,7 @@ def chunk_to_str(chunk):
 
 
 def match_symbol_kind_at(content, start):
-    for symbol_kind in symbol_kinds:
+    for symbol_kind in tks.symbol_kinds:
         try:
             for i, c in enumerate(symbol_kind.text_repr):
                 if content[start + i].c != c:
@@ -191,7 +164,7 @@ def match_symbol_kind_at(content, start):
 
 def match_include_command(tokens):
     return (len(tokens) == 2 and
-            tokens[-1].kind == identifier)
+            tokens[-1].kind == tks.identifier)
 
 
 def read_string(line, start, delim, null):
@@ -256,18 +229,18 @@ def add_chunk(chunk, tokens):
 
         keyword_kind = match_keyword_kind(chunk)
         if keyword_kind:
-            tokens.append(Token(keyword_kind, r=range))
+            tokens.append(tks.Token(keyword_kind, r=range))
             return
 
         number_string = match_number_string(chunk)
         if number_string:
-            tokens.append(Token(number, number_string, r=range))
+            tokens.append(tks.Token(tks.number, number_string, r=range))
             return
 
         identifier_name = match_identifier_name(chunk)
         if identifier_name:
-            tokens.append(Token(
-                identifier, identifier_name, r=range))
+            tokens.append(tks.Token(
+                tks.identifier, identifier_name, r=range))
             return
 
         descrip = f"unrecognized token at '{chunk_to_str(chunk)}'"
@@ -276,7 +249,7 @@ def add_chunk(chunk, tokens):
 
 def match_keyword_kind(token_repr):
     token_str = chunk_to_str(token_repr)
-    for keyword_kind in keyword_kinds:
+    for keyword_kind in tks.keyword_kinds:
         if keyword_kind.text_repr == token_str:
             return keyword_kind
     return None

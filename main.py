@@ -1,7 +1,5 @@
-from lib2to3.pgen2 import token
 import sys
-from pprint import pprint
-from core import lexer, parser, interpreter, error_collector
+from core import lexer, error_collector
 
 def main() -> None:
     try:

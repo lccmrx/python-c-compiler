@@ -12,7 +12,6 @@ class TokenKind:
 
 
 class Token:
-
     def __init__(self, kind, content="", rep="", r=None):
         self.kind = kind
 
