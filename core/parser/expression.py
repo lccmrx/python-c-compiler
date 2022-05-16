@@ -9,11 +9,9 @@ from core.parser.utils import (add_range, match_token, token_is, ParserError,
 
 @add_range
 def parse_expression(index):
-    """Parse expression."""
     return parse_series(
         index, parse_assignment,
         {tks.comma: expr_nodes.MultiExpr})
-
 
 @add_range
 def parse_assignment(index):
@@ -39,13 +37,11 @@ def parse_assignment(index):
 def parse_conditional(index):
     return parse_logical_or(index)
 
-
 @add_range
 def parse_logical_or(index):
     return parse_series(
         index, parse_logical_and,
         {})
-
 
 @add_range
 def parse_logical_and(index):
@@ -59,10 +55,8 @@ def parse_equality(index):
         index, parse_relational,
         {})
 
-
 @add_range
 def parse_relational(index):
-    """Parse relational expression."""
     return parse_series(
         index, parse_bitwise,
         {})
@@ -77,7 +71,6 @@ def parse_bitwise(index):
 
 @add_range
 def parse_additive(index):
-    """Parse additive expression."""
     return parse_series(
         index, parse_multiplicative,
         {tks.plus: expr_nodes.Plus,
@@ -86,7 +79,6 @@ def parse_additive(index):
 
 @add_range
 def parse_multiplicative(index):
-    """Parse multiplicative expression."""
     return parse_series(
         index, parse_cast,
         {tks.star: expr_nodes.Mult,
@@ -96,8 +88,6 @@ def parse_multiplicative(index):
 
 @add_range
 def parse_cast(index):
-    """Parse cast expression."""
-
     from core.parser.declaration import (
         parse_abstract_declarator, parse_spec_qual_list)
 
@@ -116,8 +106,6 @@ def parse_cast(index):
 
 @add_range
 def parse_unary(index):
-    """Parse unary expression."""
-
     unary_args = {tks.amp: (parse_cast, expr_nodes.AddrOf),
                   tks.star: (parse_cast, expr_nodes.Deref),
                   tks.plus: (parse_cast, expr_nodes.UnaryPlus),
@@ -133,7 +121,6 @@ def parse_unary(index):
 
 @add_range
 def parse_postfix(index):
-    """Parse postfix expression."""
     cur, index = parse_primary(index)
 
     while True:
@@ -187,7 +174,6 @@ def parse_postfix(index):
 
 @add_range
 def parse_primary(index):
-    """Parse primary expression."""
     if token_is(index, tks.l_paren):
         node, index = parse_expression(index + 1)
         index = match_token(index, tks.r_paren, ParserError.GOT)

@@ -29,20 +29,6 @@ def parse_declaration(index):
 
 @add_range
 def parse_declarator(index, is_typedef=False):
-    """Parse the tokens that comprise a declarator.
-
-    A declarator is the part of a declaration that comes after the
-    declaration specifiers (int, static, etc.) but before any initializers.
-    For example, in `int extern func()` the declarator is `func()`.
-
-    This function parses both declarators and abstract declarators. For
-    abstract declarators, the Identifier node at the leaf of the generated
-    tree has the identifier None. If you want to parse an abstract
-    declarator only, and produce an error if the result is a non-abstract
-    declarator, use the parse_abstract_declarator function instead.
-
-    Returns a decl_nodes.Node and index.
-    """
     end = _find_decl_end(index)
     return _parse_declarator(index, end, is_typedef), end
 
@@ -144,37 +130,20 @@ def parse_decl_specifiers(index, _spec_qual=False):
 
 
 def parse_spec_qual_list(index):
-    """Parse a specifier-qualifier list.
-
-    This function saves a CompilerError if any declaration specifiers
-    are provided that are not type specifiers or type qualifiers.
-    """
     return parse_decl_specifiers(index, True)
 
 
 def parse_parameter_list(index):
-    """Parse a function parameter list.
-
-    Returns a list of decl_nodes arguments and the index right after the
-    last argument token. This index should be the index of a closing
-    parenthesis, but that check is left to the caller.
-
-    index - index right past the opening parenthesis
-    """
-    # List of decl_nodes arguments
     params = []
 
-    # No arguments
     if token_is(index, tks.r_paren):
         return params, index
 
     while True:
-        # Try parsing declaration specifiers, quit if no more exist
         specs, index = parse_decl_specifiers(index)
         decl, index = parse_declarator(index)
         params.append(decl_nodes.Root(specs, [decl]))
 
-        # Expect a comma, and break if there isn't one
         if token_is(index, tks.comma):
             index += 1
         else:
@@ -182,30 +151,7 @@ def parse_parameter_list(index):
 
     return params, index
 
-
-@add_range
-def parse_struct_spec(index):
-    """Parse a struct specifier as a decl_nodes.Struct node.
-
-    index - index right past the `struct` keyword
-    """
-    return _parse_struct_union_spec(index, decl_nodes.Struct)
-
-
-@add_range
-def parse_union_spec(index):
-    """Parse a union specifier as a decl_nodes.Union node.
-
-    index - index right past the `union` keyword
-    """
-    return _parse_struct_union_spec(index, decl_nodes.Union)
-
-
 def parse_struct_union_members(index):
-    """Parse the list of members of struct or union as a list of Root nodes.
-
-    index - index right past the open bracket starting the members list
-    """
     members = []
 
     while True:
@@ -230,7 +176,6 @@ def _find_pair_forward(index,
         if depth == 0:
             break
     else:
-        # if loop did not break, no close paren was found
         raise_error(mess, index, ParserError.AT)
     return i
 
@@ -249,7 +194,6 @@ def _find_pair_backward(index,
         if depth == 0:
             break
     else:
-        # if loop did not break, no open paren was found
         raise_error(mess, index, ParserError.AT)
     return i
 
@@ -277,8 +221,6 @@ def _parse_declarator(start, end, is_typedef):
 
 
 def _parse_declarator_raw(start, end, is_typedef):
-    """Like _parse_declarator, but doesn't add `.r` range attribute."""
-
     if start == end:
         return decl_nodes.Identifier(None)
 
@@ -295,12 +237,10 @@ def _parse_declarator_raw(start, end, is_typedef):
     func_decl = _try_parse_func_decl(start, end, is_typedef)
     if func_decl: return func_decl
 
-    # First and last elements make a parenthesis pair
     elif (p.tokens[start].kind == tks.l_paren and
           _find_pair_forward(start) == end - 1):
         return _parse_declarator(start + 1, end - 1, is_typedef)
 
-    # Last element indicates an array type
     elif p.tokens[end - 1].kind == tks.close_sq_brack:
         open_sq = _find_pair_backward(
             end - 1, tks.l_sq_brack, tks.close_sq_brack,
@@ -318,36 +258,3 @@ def _parse_declarator_raw(start, end, is_typedef):
             num_el, _parse_declarator(start, open_sq, is_typedef))
 
     raise_error("faulty declaration syntax", start, ParserError.AT)
-
-
-def _try_parse_func_decl(start, end, is_typedef=False):
-    if not token_is(end - 1, tks.r_paren):
-        return None
-
-    l_paren = _find_pair_backward(end - 1)
-    with log_error():
-        params, index = parse_parameter_list(l_paren + 1)
-        if index == end - 1:
-            return decl_nodes.Function(
-                params, _parse_declarator(start, l_paren, is_typedef))
-
-    return None
-
-def _parse_struct_union_spec(index, node_type):
-    start_r = p.tokens[index - 1].r
-
-    name = None
-    if token_is(index, tks.identifier):
-        name = p.tokens[index]
-        index += 1
-
-    members = None
-    if token_is(index, tks.open_brack):
-        members, index = parse_struct_union_members(index + 1)
-
-    if name is None and members is None:
-        err = "expected identifier or member list"
-        raise_error(err, index, ParserError.AFTER)
-
-    r = start_r + p.tokens[index - 1].r
-    return node_type(name, members, r), index
