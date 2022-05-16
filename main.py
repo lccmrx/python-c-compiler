@@ -16,6 +16,8 @@ def main() -> None:
         ast_root = parser.parse(token_list)
         ast_ok = 'OK' if error_collector.ok() else 'NOK'
         pprint(ast_root)
+        for node in ast_root:
+            print(node)
         
         assert not error_collector.ok()
         

@@ -431,7 +431,6 @@ class _ArithUnOp(_RExprNode):
 class UnaryPlus(_ArithUnOp):
     descrip = "unary plus"
 
-
 class UnaryMinus(_ArithUnOp):
     descrip = "unary minus"
 
