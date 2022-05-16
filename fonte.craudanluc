@@ -1,2 +1,6 @@
-int a = 1;
+int a;
+a = 2;
 string b = "aidjf asdfj";
+
+scanf("%d", &a);
+printf("%d\n", a);

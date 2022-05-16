@@ -6,33 +6,16 @@ from core import tokens as token_kinds
 
 
 class CType:
-    """Represents a C type, like `int` or `double` or a struct or union.
-
-    size (int) - The result of sizeof on this type.
-    """
-
     def __init__(self, size, const=False):
-        """Initialize type."""
         self.size = size
         self.const = const
-
-        # Required because casting to bool is special in C11.
         self._bool = False
-
-        # Required for super hacky struct trick, see the weak_compat
-        # function for the struct.
         self._orig = self
 
     def weak_compat(self, other):
-        """Check for weak compatibility with `other` ctype.
-
-        Two types are "weakly compatible" if their unqualified version are
-        compatible.
-        """
         raise NotImplementedError
 
     def is_complete(self):
-        """Check whether this is a complete type."""
         return False
 
     def is_incomplete(self):
