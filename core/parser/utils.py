@@ -6,7 +6,6 @@ from core.errors import CompilerError, Range
 
 tokens = None
 
-
 class SimpleSymbolTable:
     def __init__(self):
         self.symbols = []
@@ -30,7 +29,6 @@ class SimpleSymbolTable:
 
 
 symbols = SimpleSymbolTable()
-
 
 class ParserError(CompilerError):
     AT = 1
@@ -72,14 +70,10 @@ class ParserError(CompilerError):
 
 
 def raise_error(err, index, error_type):
-    """Raise a parser error."""
     global tokens
     raise ParserError(err, index, tokens, error_type)
 
-
-# Used to store the best error found in the parsing phase.
 best_error = None
-
 
 @contextmanager
 def log_error():
@@ -121,7 +115,6 @@ def match_token(index, kind, message_type, message=None):
 
 
 def token_range(start, end):
-    """Generate a range that encompasses tokens[start] to tokens[end-1]"""
     global tokens
 
     start_index = min(start, len(tokens) - 1, end - 1)

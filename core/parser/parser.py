@@ -4,7 +4,7 @@ import core.tree.nodes as nodes
 from core.errors import error_collector
 from core.parser.utils import (add_range, log_error, ParserError,
                                  raise_error)
-from core.parser.declaration import parse_declaration
+from core.parser.expression import parse_assignment
 
 def parse(tokens_to_parse):
     p.best_error = None
@@ -22,8 +22,8 @@ def parse_root(index):
     items = []
     while True:
         with log_error():
-            item, index = parse_declaration(index)
-            items.append(item)
+            expr, index = parse_assignment(index + 1)
+            items.append(expr)
             continue
 
         break

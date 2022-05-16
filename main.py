@@ -1,10 +1,12 @@
 import sys
-from pprint import pprint
 from core import lexer, error_collector
 from core.parser import parser
 
 def main() -> None:
     try:
+        lexer_ok = 'NOK'
+        parser_ok = 'NOK'
+        
         if len(sys.argv) <= 1:
             sys.exit('No file specified')
 
@@ -12,12 +14,10 @@ def main() -> None:
         code = file.read()
         
         token_list = lexer.tokenize(code, file)
-        tokenize_ok = 'OK' if error_collector.ok() else 'NOK'
+        lexer_ok = 'OK' if error_collector.ok() else 'NOK'
+
         ast_root = parser.parse(token_list)
-        ast_ok = 'OK' if error_collector.ok() else 'NOK'
-        pprint(ast_root)
-        for node in ast_root:
-            print(node)
+        parser_ok = 'OK' if error_collector.ok() else 'NOK'
         
         assert not error_collector.ok()
         
@@ -29,7 +29,7 @@ def main() -> None:
         file.close()
         print(f"""\rRESULTS:
             \r-------------------------
-            \r  [{tokenize_ok}] Lexical Analysis
-            \r  [{ast_ok}] Syntatic Analysis
+            \r  [{lexer_ok}] Lexical Analysis
+            \r  [{parser_ok}] Syntatic Analysis
             \r""")
         sys.exit(error_collector.show())

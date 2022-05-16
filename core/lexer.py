@@ -62,7 +62,6 @@ def join_extended_lines(lines):
 
 
 def tokenize_line(line, in_comment):
-    
     tokens = []
 
     chunk_start = 0
@@ -74,7 +73,6 @@ def tokenize_line(line, in_comment):
     while chunk_end < len(line):
         symbol_kind = match_symbol_kind_at(line, chunk_end)
         next_symbol_kind = match_symbol_kind_at(line, chunk_end + 1)
-
        
         if match_include_command(tokens):
             include_line = True
@@ -139,13 +137,10 @@ def tokenize_line(line, in_comment):
             chunk_end += 1
 
     add_chunk(line[chunk_start:chunk_end], tokens)
-
     return tokens, in_comment
-
 
 def chunk_to_str(chunk):
     return "".join(c.c for c in chunk)
-
 
 def match_symbol_kind_at(content, start):
     for symbol_kind in tks.symbol_kinds:

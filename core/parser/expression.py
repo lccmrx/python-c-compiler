@@ -185,9 +185,6 @@ def parse_primary(index):
         return expr_nodes.Identifier(p.tokens[index]), index + 1
     elif token_is(index, tks.string):
         return expr_nodes.String(p.tokens[index].content), index + 1
-    elif token_is(index, tks.char_string):
-        chars = p.tokens[index].content
-        return expr_nodes.Number(chars[0]), index + 1
     else:
         raise_error("expected expression", index, ParserError.GOT)
 

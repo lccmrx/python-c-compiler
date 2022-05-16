@@ -25,14 +25,12 @@ class Token:
     def __str__(self):
         return self.rep if self.rep else self.content
 
-
 keyword_kinds = []
 symbol_kinds = []
 
 bool_kw = TokenKind("bool", keyword_kinds)
 char_kw = TokenKind("string", keyword_kinds)
 int_kw = TokenKind("int", keyword_kinds)
-float_kw = TokenKind("float", keyword_kinds)
 
 plus = TokenKind("+", symbol_kinds)
 minus = TokenKind("-", symbol_kinds)
