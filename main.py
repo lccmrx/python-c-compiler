@@ -1,5 +1,6 @@
 import sys
 from core import lexer, error_collector
+from core.parser import parser
 
 def main() -> None:
     try:
@@ -10,6 +11,8 @@ def main() -> None:
         code = file.read()
         
         token_list = lexer.tokenize(code, file)
+        print(parser)
+        ast_root = parser.parse(token_list)
         
         for token in token_list:
             print(token)

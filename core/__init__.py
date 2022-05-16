@@ -1,4 +1,4 @@
 from core.errors import error_collector
-from core import lexer, parser
+from core import lexer
 
-__all__ = ['lexer', 'parser', 'error_collector']
+__all__ = ['error_collector', 'lexer']

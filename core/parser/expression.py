@@ -1,7 +1,7 @@
 """Parser logic that parses expression nodes."""
 
 from core import tokens as tks
-import parser.utils as p
+import core.parser.utils as p
 import core.tree.expr_nodes as expr_nodes
 import core.tree.decl_nodes as decl_nodes
 from core.parser.utils import (add_range, match_token, token_is, ParserError,

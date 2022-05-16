@@ -1,9 +1,10 @@
-import parser.utils as p
-import tree.nodes as nodes
+import core.parser.utils as p
+import core.tree.nodes as nodes
 
 from core.errors import error_collector
-from parser.utils import (add_range, log_error, ParserError,
+from core.parser.utils import (add_range, log_error, ParserError,
                                  raise_error)
+from core.parser.declaration import parse_declaration
 
 def parse(tokens_to_parse):
     p.best_error = None
@@ -18,23 +19,15 @@ def parse(tokens_to_parse):
 
 @add_range
 def parse_root(index):
-    """Parse the given tokens into an AST."""
     items = []
     while True:
-        with log_error():
-            item, index = parse_func_definition(index)
-            items.append(item)
-            continue
-
         with log_error():
             item, index = parse_declaration(index)
             items.append(item)
             continue
 
-        # If neither parse attempt above worked, break
         break
 
-    # If there are tokens that remain unparsed, complain
     if not p.tokens[index:]:
         return nodes.Root(items), index
     else:

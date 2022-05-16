@@ -272,43 +272,13 @@ class _ArithBinOp(_RExprNode):
         return out
 
     def _arith_const(self, left, right, ctype):
-        """Return the result on compile-time constant operands.
-
-        For example, an expression like `4 + 3` can be evaluated at compile
-        time without emitting any IL code. This doubles as both an
-        implementation of constant expressions in C and as a compiler
-        optimization.
-
-        Promotions and conversions are done by caller, so the implementation of
-        this function need not convert operands. Also, the `left` and
-        `right` values are guaranteed to be in the range of representable
-        values for the given ctype.
-
-        If this function raises NotImplementedError, the caller will use
-        the _arith function on given operands instead.
-
-        left_val - the NUMERICAL value of the left operand
-        right_val - the NUMERICAL value of the right operand.
-        """
         raise NotImplementedError
 
     def _nonarith(self, left, right, il_code):
-        """Return the result of this operation on given nonarithmetic operands.
-
-        left - ILValue for left operand
-        right - ILValue for right operand
-        """
         raise NotImplementedError
 
 
 class Plus(_ArithBinOp):
-    """Expression that is sum of two expressions.
-
-    left - Expression on left side
-    right - Expression on right side
-    op (Token) - Plus operator token
-    """
-
     def __init__(self, left, right, op):
         """Initialize node."""
         super().__init__(left, right, op)
@@ -319,10 +289,7 @@ class Plus(_ArithBinOp):
         return shift_into_range(left + right, ctype)
 
     def _nonarith(self, left, right, il_code):
-        """Make addition code if either operand is non-arithmetic type."""
 
-        # One operand should be pointer to complete object type, and the
-        # other should be any integer type.
         if left.ctype.is_pointer() and right.ctype.is_integral():
             arith, pointer = right, left
         elif right.ctype.is_pointer() and left.ctype.is_integral():
@@ -335,7 +302,6 @@ class Plus(_ArithBinOp):
             err = "invalid arithmetic on pointer to incomplete type"
             raise CompilerError(err, self.op.r)
 
-        # Multiply by size of objects
         out = ILValue(pointer.ctype)
         shift = get_size(pointer.ctype.arg, arith, il_code)
         il_code.add(math_cmds.Add(out, pointer, shift))
@@ -343,13 +309,6 @@ class Plus(_ArithBinOp):
 
 
 class Minus(_ArithBinOp):
-    """Expression that is the difference of two expressions.
-
-    left - Expression on left side
-    right - Expression on right side
-    op (Token) - Plus operator token
-    """
-
     def __init__(self, left, right, op):
         """Initialize node."""
         super().__init__(left, right, op)
@@ -360,9 +319,6 @@ class Minus(_ArithBinOp):
         return shift_into_range(left - right, ctype)
 
     def _nonarith(self, left, right, il_code):
-        """Make subtraction code if both operands are non-arithmetic type."""
-
-        # TODO: this isn't quite right when we allow qualifiers
         if (left.ctype.is_pointer() and right.ctype.is_pointer()
              and left.ctype.compatible(right.ctype)):
 
