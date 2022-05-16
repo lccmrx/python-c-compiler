@@ -1,5 +1,3 @@
-"""Utility objects for the AST nodes and IL generation steps of ShivyC."""
-
 from contextlib import contextmanager
 
 from core.errors import CompilerError, error_collector

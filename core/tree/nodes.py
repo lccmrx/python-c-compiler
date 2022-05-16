@@ -1,21 +1,18 @@
 from core import tokens as tks
+from core import ctypes
 import core.tree.decl_nodes as decl_nodes
 
 from core.errors import CompilerError
 from core.tree.utils import DirectLValue, report_err, set_type, check_cast
 
-
 class Node:
-
     def __init__(self):
         self.r = None
 
     def make_il(self, il_code, symbol_table, c):
         raise NotImplementedError
 
-
 class Root(Node):
-
     def __init__(self, nodes):
         super().__init__()
         self.nodes = nodes
@@ -25,7 +22,6 @@ class Root(Node):
             with report_err():
                 c = c.set_global(True)
                 node.make_il(il_code, symbol_table, c)
-
 
 class Compound(Node):
     def __init__(self, items):
@@ -115,8 +111,6 @@ class DeclInfo:
             raise CompilerError(err, self.range)
 
     def process_typedef(self, symbol_table):
-        """Process type declarations."""
-
         if self.init:
             err = "typedef cannot have initializer"
             raise CompilerError(err, self.range)
@@ -128,13 +122,6 @@ class DeclInfo:
         symbol_table.add_typedef(self.identifier, self.ctype)
 
     def do_init(self, var, storage, il_code, symbol_table, c):
-        """Create code for initializing given variable.
-
-        Caller must check that this object has an initializer.
-        """
-        # little bit hacky, but will be fixed when full initializers are
-        # implemented shortly
-
         init = self.init.make_il(il_code, symbol_table, c)
         if storage == symbol_table.STATIC and not init.literal:
             err = ("non-constant initializer for variable with static "
@@ -150,10 +137,6 @@ class DeclInfo:
             raise CompilerError(err, self.range)
 
     def do_body(self, il_code, symbol_table, c):
-        """Create code for function body.
-
-        Caller must check that this function has a body.
-        """
         is_main = self.identifier.content == "main"
 
         for param in self.param_names:
@@ -251,7 +234,6 @@ class DeclInfo:
 
         return storage
 
-
 class Declaration(Node):
     """Line of a general variable declaration(s).
 
@@ -309,15 +291,6 @@ class Declaration(Node):
         return out
 
     def make_ctype(self, decl, prev_ctype):
-        """Generate a ctype from the given declaration.
-
-        Return a `ctype, identifier token` tuple.
-
-        decl - Node of decl_nodes to parse. See decl_nodes.py for explanation
-        about decl_nodes.
-        prev_ctype - The ctype formed from all parts of the tree above the
-        current one.
-        """
         if isinstance(decl, decl_nodes.Pointer):
             new_ctype = PointerCType(prev_ctype, decl.const)
         elif isinstance(decl, decl_nodes.Array):
@@ -399,8 +372,6 @@ class Declaration(Node):
         return new_ctype
 
     def extract_params(self, decl):
-        """Return the parameter list for this function."""
-
         identifiers = []
         func_decl = None
         while decl and not isinstance(decl, decl_nodes.Identifier):
@@ -409,12 +380,6 @@ class Declaration(Node):
             decl = decl.child
 
         if not func_decl:
-            # This condition is true for the following code:
-            #
-            # typedef int F(void);
-            # F f { }
-            #
-            # See 6.9.1.2
             err = "function definition missing parameter list"
             raise CompilerError(err, self.r)
 
@@ -425,32 +390,19 @@ class Declaration(Node):
         return identifiers
 
     def make_specs_ctype(self, specs, any_dec):
-        """Make a ctype out of the provided list of declaration specifiers.
-
-        any_dec - Whether these specifiers are used to declare a variable.
-        This value is important because `struct A;` has a different meaning
-        than `struct A *p;`, since the former forward-declares a new struct
-        while the latter may reuse a struct A that already exists in scope.
-
-        Return a `ctype, storage class` pair, where storage class is one of
-        the above values.
-        """
         spec_range = specs[0].r + specs[-1].r
         storage = self.get_storage([spec.kind for spec in specs], spec_range)
-        const = token_kinds.const_kw in {spec.kind for spec in specs}
 
-        struct_union_specs = {token_kinds.struct_kw, token_kinds.union_kw}
+        struct_union_specs = {}
         if any(s.kind in struct_union_specs for s in specs):
             node = [s for s in specs if s.kind in struct_union_specs][0]
 
-            # This is a redeclaration of a struct if there are no storage
-            # specifiers and it declares no variables.
             redec = not any_dec and storage is None
             base_type = self.parse_struct_union_spec(node, redec)
 
         # is a typedef
-        elif any(s.kind == token_kinds.identifier for s in specs):
-            ident = [s for s in specs if s.kind == token_kinds.identifier][0]
+        elif any(s.kind == tks.identifier for s in specs):
+            ident = [s for s in specs if s.kind == tks.identifier][0]
             base_type = self.symbol_table.lookup_typedef(ident)
 
         else:
@@ -460,10 +412,7 @@ class Declaration(Node):
         return base_type, storage
 
     def get_base_ctype(self, specs, spec_range):
-        """Return a base ctype given a list of specs."""
-
         base_specs = set(ctypes.simple_types)
-        base_specs |= {token_kinds.signed_kw, token_kinds.unsigned_kw}
 
         our_base_specs = [str(spec.kind) for spec in specs
                           if spec.kind in base_specs]
@@ -514,10 +463,7 @@ class Declaration(Node):
 
         If no storage class is listed, returns None.
         """
-        storage_classes = {token_kinds.auto_kw: DeclInfo.AUTO,
-                           token_kinds.static_kw: DeclInfo.STATIC,
-                           token_kinds.extern_kw: DeclInfo.EXTERN,
-                           token_kinds.typedef_kw: DeclInfo.TYPEDEF}
+        storage_classes = {}
 
         storage = None
         for kind in spec_kinds:
@@ -529,74 +475,7 @@ class Declaration(Node):
 
         return storage
 
-    def parse_struct_union_spec(self, node, redec):
-        """Parse struct or union ctype from the given decl_nodes.Struct node.
-
-        node (decl_nodes.Struct/Union) - the Struct or Union node to parse
-        redec (bool) - Whether this declaration is alone like so:
-
-           struct S;
-           union U;
-
-        or declares variables/has storage specifiers:
-
-           struct S *p;
-           extern struct S;
-           union U *u;
-           extern union U;
-
-        If it's the first, then this is always a forward declaration for a
-        new `struct S` but if it's the second and a `struct S` already
-        exists in higher scope, it's just using the higher scope struct.
-        """
-        has_members = node.members is not None
-
-        if node.kind == token_kinds.struct_kw:
-            ctype_req = StructCType
-        else:
-            ctype_req = UnionCType
-
-        if node.tag:
-            tag = str(node.tag)
-            ctype = self.symbol_table.lookup_struct_union(tag)
-
-            if ctype and not isinstance(ctype, ctype_req):
-                err = f"defined as wrong kind of tag '{node.kind} {tag}'"
-                raise CompilerError(err, node.r)
-
-            if not ctype or has_members or redec:
-                ctype = self.symbol_table.add_struct_union(tag, ctype_req(tag))
-
-            if has_members and ctype.is_complete():
-                err = f"redefinition of '{node.kind} {tag}'"
-                raise CompilerError(err, node.r)
-
-        else:  # anonymous struct/union
-            ctype = ctype_req(None)
-
-        if not has_members:
-            return ctype
-
-        # Struct or union does have members
-        members = []
-        members_set = set()
-        for member in node.members:
-            decl_infos = []  # needed in case get_decl_infos below fails
-            with report_err():
-                decl_infos = self.get_decl_infos(member)
-
-            for decl_info in decl_infos:
-                with report_err():
-                    self._check_struct_member_decl_info(
-                        decl_info, node.kind, members_set)
-
-                    name = decl_info.identifier.content
-                    members_set.add(name)
-                    members.append((name, decl_info.ctype))
-
-        ctype.set_members(members)
-        return ctype
-
+    
     def _check_struct_member_decl_info(self, decl_info, kind, members):
         """Check whether given decl_info object is a valid struct member."""
 

@@ -27,12 +27,7 @@ def parse_assignment(index):
         op = None
         kind = None
 
-    node_types = {tks.equals: expr_nodes.Equals,
-                  tks.plusequals: expr_nodes.PlusEquals,
-                  tks.minusequals: expr_nodes.MinusEquals,
-                  tks.starequals: expr_nodes.StarEquals,
-                  tks.divequals: expr_nodes.DivEquals,
-                  tks.modequals: expr_nodes.ModEquals}
+    node_types = {tks.equals: expr_nodes.Equals}
 
     if kind in node_types:
         right, index = parse_assignment(index + 1)
@@ -40,39 +35,29 @@ def parse_assignment(index):
     else:
         return left, index
 
-
 @add_range
 def parse_conditional(index):
-    """Parse a conditional expression."""
-    # TODO: Parse ternary operator
     return parse_logical_or(index)
 
 
 @add_range
 def parse_logical_or(index):
-    """Parse logical or expression."""
     return parse_series(
         index, parse_logical_and,
-        {token_kinds.bool_or: expr_nodes.BoolOr})
+        {})
 
 
 @add_range
 def parse_logical_and(index):
-    """Parse logical and expression."""
-    # TODO: Implement bitwise operators here.
     return parse_series(
         index, parse_equality,
-        {tks.bool_and: expr_nodes.BoolAnd})
-
+        {})
 
 @add_range
 def parse_equality(index):
-    """Parse equality expression."""
-    # TODO: Implement relational and shift expressions here.
     return parse_series(
         index, parse_relational,
-        {tks.twoequals: expr_nodes.Equality,
-         tks.notequal: expr_nodes.Inequality})
+        {})
 
 
 @add_range
@@ -80,18 +65,14 @@ def parse_relational(index):
     """Parse relational expression."""
     return parse_series(
         index, parse_bitwise,
-        {tks.lt: expr_nodes.LessThan,
-         tks.gt: expr_nodes.GreaterThan,
-         tks.ltoe: expr_nodes.LessThanOrEq,
-         tks.gtoe: expr_nodes.GreaterThanOrEq})
+        {})
 
 
 @add_range
 def parse_bitwise(index):
     return parse_series(
         index, parse_additive,
-        {tks.lbitshift: expr_nodes.LBitShift,
-         tks.rbitshift: expr_nodes.RBitShift})
+        {})
 
 
 @add_range
@@ -117,14 +98,14 @@ def parse_multiplicative(index):
 def parse_cast(index):
     """Parse cast expression."""
 
-    from shivyc.parser.declaration import (
+    from core.parser.declaration import (
         parse_abstract_declarator, parse_spec_qual_list)
 
     with log_error():
-        match_token(index, tks.open_paren, ParserError.AT)
+        match_token(index, tks.l_paren, ParserError.AT)
         specs, index = parse_spec_qual_list(index + 1)
         node, index = parse_abstract_declarator(index)
-        match_token(index, tks.close_paren, ParserError.AT)
+        match_token(index, tks.r_paren, ParserError.AT)
 
         decl_node = decl_nodes.Root(specs, [node])
         expr_node, index = parse_cast(index + 1)
@@ -137,32 +118,15 @@ def parse_cast(index):
 def parse_unary(index):
     """Parse unary expression."""
 
-    unary_args = {tks.incr: (parse_unary, expr_nodes.PreIncr),
-                  tks.decr: (parse_unary, expr_nodes.PreDecr),
-                  tks.amp: (parse_cast, expr_nodes.AddrOf),
+    unary_args = {tks.amp: (parse_cast, expr_nodes.AddrOf),
                   tks.star: (parse_cast, expr_nodes.Deref),
-                  tks.bool_not: (parse_cast, expr_nodes.BoolNot),
                   tks.plus: (parse_cast, expr_nodes.UnaryPlus),
-                  tks.minus: (parse_cast, expr_nodes.UnaryMinus),
-                  tks.compl: (parse_cast, expr_nodes.Compl)}
+                  tks.minus: (parse_cast, expr_nodes.UnaryMinus)}
 
     if token_in(index, unary_args):
         parse_func, NodeClass = unary_args[p.tokens[index].kind]
         subnode, index = parse_func(index + 1)
         return NodeClass(subnode), index
-    elif token_is(index, tks.sizeof_kw):
-        with log_error():
-            node, index = parse_unary(index + 1)
-            return expr_nodes.SizeofExpr(node), index
-
-
-        match_token(index + 1, tks.open_paren, ParserError.AFTER)
-        specs, index = parse_spec_qual_list(index + 2)
-        node, index = parse_abstract_declarator(index)
-        match_token(index, tks.close_paren, ParserError.AT)
-        decl_node = decl_nodes.Root(specs, [node])
-
-        return expr_nodes.SizeofType(decl_node), index + 1
     else:
         return parse_postfix(index)
 
@@ -175,15 +139,14 @@ def parse_postfix(index):
     while True:
         old_range = cur.r
 
-        if token_is(index, tks.open_sq_brack):
+        if token_is(index, tks.l_sq_brack):
             index += 1
             arg, index = parse_expression(index)
             cur = expr_nodes.ArraySubsc(cur, arg)
             match_token(index, tks.close_sq_brack, ParserError.GOT)
             index += 1
 
-        elif (token_is(index, tks.dot) or
-              token_is(index, tks.arrow)):
+        elif (token_is(index, tks.dot)):
             index += 1
             match_token(index, tks.identifier, ParserError.AFTER)
             member = p.tokens[index]
@@ -195,11 +158,11 @@ def parse_postfix(index):
 
             index += 1
 
-        elif token_is(index, tks.open_paren):
+        elif token_is(index, tks.l_paren):
             args = []
             index += 1
 
-            if token_is(index, tks.close_paren):
+            if token_is(index, tks.r_paren):
                 return expr_nodes.FuncCall(cur, args), index + 1
 
             while True:
@@ -212,16 +175,10 @@ def parse_postfix(index):
                     break
 
             index = match_token(
-                index, tks.close_paren, ParserError.GOT)
+                index, tks.r_paren, ParserError.GOT)
 
             return expr_nodes.FuncCall(cur, args), index
 
-        elif token_is(index, tks.incr):
-            index += 1
-            cur = expr_nodes.PostIncr(cur)
-        elif token_is(index, tks.decr):
-            index += 1
-            cur = expr_nodes.PostDecr(cur)
         else:
             return cur, index
 
@@ -231,9 +188,9 @@ def parse_postfix(index):
 @add_range
 def parse_primary(index):
     """Parse primary expression."""
-    if token_is(index, tks.open_paren):
+    if token_is(index, tks.l_paren):
         node, index = parse_expression(index + 1)
-        index = match_token(index, tks.close_paren, ParserError.GOT)
+        index = match_token(index, tks.r_paren, ParserError.GOT)
         return expr_nodes.ParenExpr(node), index
     elif token_is(index, tks.number):
         return expr_nodes.Number(p.tokens[index]), index + 1

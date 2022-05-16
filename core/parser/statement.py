@@ -1,12 +1,12 @@
 """Parser logic that parses statement nodes."""
 
-import shivyc.token_kinds as token_kinds
-import shivyc.tree.nodes as nodes
-import shivyc.parser.utils as p
+import core.token_kinds as token_kinds
+import core.tree.nodes as nodes
+import core.parser.utils as p
 
-from shivyc.parser.declaration import parse_declaration
-from shivyc.parser.expression import parse_expression
-from shivyc.parser.utils import (add_range, log_error, match_token, token_is,
+from core.parser.declaration import parse_declaration
+from core.parser.expression import parse_expression
+from core.parser.utils import (add_range, log_error, match_token, token_is,
                                  ParserError)
 
 
@@ -97,9 +97,9 @@ def parse_if_statement(index):
     """Parse an if statement."""
 
     index = match_token(index, token_kinds.if_kw, ParserError.GOT)
-    index = match_token(index, token_kinds.open_paren, ParserError.AFTER)
+    index = match_token(index, token_kinds.l_paren, ParserError.AFTER)
     conditional, index = parse_expression(index)
-    index = match_token(index, token_kinds.close_paren, ParserError.AFTER)
+    index = match_token(index, token_kinds.r_paren, ParserError.AFTER)
     statement, index = parse_statement(index)
 
     # If there is an else that follows, parse that too.
@@ -117,9 +117,9 @@ def parse_if_statement(index):
 def parse_while_statement(index):
     """Parse a while statement."""
     index = match_token(index, token_kinds.while_kw, ParserError.GOT)
-    index = match_token(index, token_kinds.open_paren, ParserError.AFTER)
+    index = match_token(index, token_kinds.l_paren, ParserError.AFTER)
     conditional, index = parse_expression(index)
-    index = match_token(index, token_kinds.close_paren, ParserError.AFTER)
+    index = match_token(index, token_kinds.r_paren, ParserError.AFTER)
     statement, index = parse_statement(index)
 
     return nodes.WhileStatement(conditional, statement), index
@@ -129,7 +129,7 @@ def parse_while_statement(index):
 def parse_for_statement(index):
     """Parse a for statement."""
     index = match_token(index, token_kinds.for_kw, ParserError.GOT)
-    index = match_token(index, token_kinds.open_paren, ParserError.AFTER)
+    index = match_token(index, token_kinds.l_paren, ParserError.AFTER)
 
     first, second, third, index = _get_for_clauses(index)
     stat, index = parse_statement(index)
@@ -158,12 +158,12 @@ def _get_for_clauses(index):
         second, index = parse_expression(index)
         index = match_token(index, token_kinds.semicolon, ParserError.AFTER)
 
-    if token_is(index, token_kinds.close_paren):
+    if token_is(index, token_kinds.r_paren):
         third = None
         index += 1
     else:
         third, index = parse_expression(index)
-        index = match_token(index, token_kinds.close_paren, ParserError.AFTER)
+        index = match_token(index, token_kinds.r_paren, ParserError.AFTER)
 
     return first, second, third, index
 

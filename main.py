@@ -1,4 +1,5 @@
 import sys
+from pprint import pprint
 from core import lexer, error_collector
 from core.parser import parser
 
@@ -11,11 +12,11 @@ def main() -> None:
         code = file.read()
         
         token_list = lexer.tokenize(code, file)
-        print(parser)
+        tokenize_ok = 'OK' if error_collector.ok() else 'NOK'
         ast_root = parser.parse(token_list)
+        ast_ok = 'OK' if error_collector.ok() else 'NOK'
+        pprint(ast_root)
         
-        for token in token_list:
-            print(token)
         assert not error_collector.ok()
         
     except Exception as e:
@@ -26,7 +27,7 @@ def main() -> None:
         file.close()
         print(f"""\rRESULTS:
             \r-------------------------
-            \r  ['OK'] Lexical Analysis
-            \r  ['OK'] Syntatic Analysis
+            \r  [{tokenize_ok}] Lexical Analysis
+            \r  [{ast_ok}] Syntatic Analysis
             \r""")
         sys.exit(error_collector.show())

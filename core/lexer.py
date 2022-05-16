@@ -68,7 +68,6 @@ def tokenize_line(line, in_comment):
     chunk_start = 0
     chunk_end = 0
 
-    
     include_line = False
    
     seen_filename = False
